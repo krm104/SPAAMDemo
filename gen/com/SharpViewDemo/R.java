@@ -1111,6 +1111,7 @@ containing a value of this type.
         public static final int screen_calib_5=0x7f020065;
         public static final int screen_calib_intro=0x7f020066;
         public static final int sharpview_image=0x7f020067;
+        public static final int sharpview_image_copy=0x7f020068;
     }
     public static final class id {
         public static final int action_bar=0x7f06001f;

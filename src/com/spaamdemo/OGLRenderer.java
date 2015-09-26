@@ -623,7 +623,7 @@ public class OGLRenderer extends Activity implements Renderer{
 			SharpView_texture = TextureHelper.loadTexture(img_sharp, SharpView_texture);
 			NormalView_texture = TextureHelper.loadTexture(img_orig, NormalView_texture);
 			
-			timer.scheduleAtFixedRate(updatesharp, 10000, interval*1000);
+			timer.scheduleAtFixedRate(updatesharp, 1000, interval*500);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -949,8 +949,8 @@ public class OGLRenderer extends Activity implements Renderer{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
 		EvaluationBoardH_model.T_reset();
-		EvaluationBoardH_model.T_translate(-.1f, 0.0f, -1.0f);
-		EvaluationBoardH_model.T_scale(.25f, .5f, 1.0f);
+		EvaluationBoardH_model.T_translate(-0.1670897f, 0.02499922f, -0.33620003f);
+		EvaluationBoardH_model.T_scale(.05f, .1f, 1.0f);
 		float[] temp = new float[16];
 		/////////////////////////////////////////////////////////////////////////
 		if ( tracking ){
@@ -964,6 +964,9 @@ public class OGLRenderer extends Activity implements Renderer{
 			float CPD = Math.abs(u_Transform[14]);
 			float dist = (float) Math.sqrt(u_Transform[12]*u_Transform[12] + u_Transform[13]*u_Transform[13]);
 			float angle = (float) Math.abs(25.0 - (float) (Math.atan(dist/CPD)*180.0/Math.PI));
+			//Log.d("X", Float.toString(u_Transform[12]));
+			//Log.d("Y", Float.toString(u_Transform[13]));
+			//Log.d("Z", Float.toString(u_Transform[14]));
 			
 			////////Apply SharpView////////
 			if ( angle > 5.0 )
@@ -976,13 +979,32 @@ public class OGLRenderer extends Activity implements Renderer{
 
 			}
 			////////////////////////////////////////////		
-						
+			///////////////////////////////////////////////////////////////////////////
+			///////////////////////////////////////////////////////////////////////////
+
+			//Draw Models//
+			//Evaluation Models//
+			//Draw Right Eye//
+			glViewport(WIDTH/2, 0, WIDTH/2, HEIGHT);
+			
+			textureProgram.useProgram();
+			multiplyMM(temp, 0, u_Transform, 0, EvaluationBoardV_model.T_get(), 0);
+			if ( sharpImage )
+			{
+				textureProgram.setUniforms(u_ProjectionRight, temp, SharpView_texture);
+			}
+			else
+			{
+				textureProgram.setUniforms(u_ProjectionRight, temp, NormalView_texture);
+			}
+			EvaluationBoardV_model.bindData(textureProgram);
+			EvaluationBoardV_model.draw();
+			
+			/*
 			//Draw Left Eye//
 			glViewport(0, 0, WIDTH/2, HEIGHT);
 			
 			textureProgram.useProgram();
-			//Draw Models//
-			//Evaluation Models//
 			multiplyMM(temp, 0, u_Transform, 0, EvaluationBoardV_model.T_get(), 0);
 			if ( sharpImage )
 			{
@@ -994,27 +1016,14 @@ public class OGLRenderer extends Activity implements Renderer{
 			}
 			EvaluationBoardV_model.bindData(textureProgram);
 			EvaluationBoardV_model.draw();
+			*/
 		}
 		multiplyMM(temp, 0, u_Transform_N, 0, EvaluationBoardH_model.T_get(), 0);
-		textureProgram.setUniforms(u_ProjectionLeft, temp, SharpView_texture);
+		textureProgram.setUniforms(u_ProjectionRight, temp, SharpView_texture);
 		EvaluationBoardH_model.bindData(textureProgram);
 		EvaluationBoardH_model.draw();
-		
-			///////////////////////////////////////////////////////////////////////////
-			///////////////////////////////////////////////////////////////////////////
-			/*
-			//Draw Right Eye//
-			glViewport(WIDTH/2, 0, WIDTH/2, HEIGHT);
-			
-			textureProgram.useProgram();
-			//Draw Models//
-			//Evaluation Models//
-			multiplyMM(temp, 0, u_Transform, 0, EvaluationBoardV_model.T_get(), 0);
-			textureProgram.setUniforms(u_ProjectionRight, temp, EvaluationBoard_texture);
-			EvaluationBoardV_model.bindData(textureProgram);
-			EvaluationBoardV_model.draw();
-			*/
-			///////////////////////////////////////////////////////////////////////////
+
+		///////////////////////////////////////////////////////////////////////////
 	}
 
 	/**************************************************************************

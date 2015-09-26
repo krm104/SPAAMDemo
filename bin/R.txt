@@ -251,6 +251,7 @@ int drawable screen_calib_4 0x7f020064
 int drawable screen_calib_5 0x7f020065
 int drawable screen_calib_intro 0x7f020066
 int drawable sharpview_image 0x7f020067
+int drawable sharpview_image_copy 0x7f020068
 int id action_bar 0x7f06001f
 int id action_bar_activity_content 0x7f060018
 int id action_bar_container 0x7f06001e
