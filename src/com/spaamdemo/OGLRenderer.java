@@ -156,6 +156,7 @@ public class OGLRenderer extends Activity implements Renderer{
 	private int EvaluationBoard_texture;
 	private int NormalView_texture;
 	private int SharpView_texture;
+	private int NormalMode_texture;
 	
 	//Screen Calibration//
 	private GenericObject ScreenCalibration_model;
@@ -623,6 +624,7 @@ public class OGLRenderer extends Activity implements Renderer{
 			SharpView_texture = TextureHelper.loadTexture(img_sharp, SharpView_texture);
 			NormalView_texture = TextureHelper.loadTexture(img_orig, NormalView_texture);
 			
+			NormalMode_texture = TextureHelper.loadTexture(this.context, R.drawable.normalview_image);
 			timer.scheduleAtFixedRate(updatesharp, 1000, interval*500);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -1000,6 +1002,7 @@ public class OGLRenderer extends Activity implements Renderer{
 			EvaluationBoardV_model.bindData(textureProgram);
 			EvaluationBoardV_model.draw();
 			
+			
 			/*
 			//Draw Left Eye//
 			glViewport(0, 0, WIDTH/2, HEIGHT);
@@ -1018,11 +1021,14 @@ public class OGLRenderer extends Activity implements Renderer{
 			EvaluationBoardV_model.draw();
 			*/
 		}
-		multiplyMM(temp, 0, u_Transform_N, 0, EvaluationBoardH_model.T_get(), 0);
-		textureProgram.setUniforms(u_ProjectionRight, temp, SharpView_texture);
-		EvaluationBoardH_model.bindData(textureProgram);
-		EvaluationBoardH_model.draw();
+		if ( !sharpImage )
+		{
+			multiplyMM(temp, 0, u_Transform_N, 0, EvaluationBoardH_model.T_get(), 0);
+			textureProgram.setUniforms(u_ProjectionRight, temp, NormalMode_texture);
+			EvaluationBoardH_model.bindData(textureProgram);
+			EvaluationBoardH_model.draw();
 
+		}
 		///////////////////////////////////////////////////////////////////////////
 	}
 
