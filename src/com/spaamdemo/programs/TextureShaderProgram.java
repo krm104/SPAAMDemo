@@ -10,7 +10,7 @@ import static android.opengl.GLES20.glUniform1i;
 import static android.opengl.GLES20.glActiveTexture;
 import static android.opengl.GLES20.glBindTexture;
 
-import com.SharpViewDemo.R;
+import com.spaamdemo.R;
 
 public class TextureShaderProgram extends ShaderProgram{
 	

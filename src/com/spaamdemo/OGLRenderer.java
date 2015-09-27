@@ -48,7 +48,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
-import com.SharpViewDemo.R;
+import com.spaamdemo.R;
 import com.spaamdemo.objects.GenericObject;
 import com.spaamdemo.objects.MoverioObject;
 import com.spaamdemo.programs.BlendTextureShaderProgram;
@@ -97,7 +97,7 @@ public class OGLRenderer extends Activity implements Renderer{
 			.1f, -.05f, 0.0f, .1f, .05f, .1f,
 			
 			};
-	
+	/*
 	float[] u_ProjectionLeft = {4.517603766f, -0.187385877f, 0.049614169f, 0.04951504f,
 							0.03085878f, 8.304909585f, 0.132992709f, 0.132726989f,
 							-0.459890387f, 1.581686211f, -0.991896862f, -0.98991505f,
@@ -106,6 +106,15 @@ public class OGLRenderer extends Activity implements Renderer{
 							0.114737754f, 8.085934414f, 0.034289488f, 0.034220978f,
 							-0.426256822f, 1.536851238f, -0.995274322f, -0.993285762f,
 							0.246058517f, -0.046813489f, -0.171563852f, 0.028579133f};
+	*/
+	float[] u_ProjectionLeft = {1f, 0f, 0f, 0f,
+			0f, 1, 0f, 0f,
+			0f, 0f, 1f, 0f,
+			0f, 0f, 0f, 1f};
+	float[] u_ProjectionRight = {1f, 0f, 0f, 0f,
+					0f, 1, 0f, 0f,
+					0f, 0f, 1f, 0f,
+					0f, 0f, 0f, 1f};
 	float[] u_Transform = {1.0f, 0.0f, 0.0f, 0.0f,
 							0.0f, 1.0f, 0.0f, 0.0f,
 							0.0f, 0.0f, 1.0f, 0.0f,
@@ -185,7 +194,7 @@ public class OGLRenderer extends Activity implements Renderer{
 	File LeftCalibFile = null;
 	File RightCalibFile = null;
 	boolean sharpImage = true;
-	float pupil_diam = 5.0f;
+	float pupil_diam = 4.0f;
 	final float SCREEN_DISTANCE = 7.0f;
 	float last_marker_distance = .5f;
 	
@@ -266,12 +275,11 @@ public class OGLRenderer extends Activity implements Renderer{
 				{
 					LeftCalibFile = null;
 					RightCalibFile = null;
-				
 					//Check if the file for the chosen eye exists. If the file does not exist, create it//
 					//Right eye//
 					//Check if file exists//
 					for ( int i = 0; i < storageDirectory.listFiles().length; i++ ){
-						if ( storageDirectory.listFiles()[i].getName() == "Right.calib" ){
+						if ( storageDirectory.listFiles()[i].getName().contains("Right")){// == "Right.calib" ){
 							RightCalibFile = storageDirectory.listFiles()[i];
 							break;
 						}
@@ -295,7 +303,7 @@ public class OGLRenderer extends Activity implements Renderer{
 					//Left eye//
 					//Check if file exists//
 					for ( int i = 0; i < storageDirectory.listFiles().length; i++ ){
-						if ( storageDirectory.listFiles()[i].getName() == "Left.calib" ){
+						if ( storageDirectory.listFiles()[i].getName().contains("Left")){ //== "Left.calib" ){
 							LeftCalibFile = storageDirectory.listFiles()[i];
 							break;
 						}
@@ -540,8 +548,9 @@ public class OGLRenderer extends Activity implements Renderer{
     	Mat temp_sharpmat = new Mat();
     	img_orig.assignTo(temp_sharpmat, CvType.CV_32F);// = Mat(img_orig);
     	
-    	float width_of_blur = (float) (pupil_diam/2.0f*Math.abs((float) (1.0f - SCREEN_DISTANCE/last_marker_distance)/2.58f)); //u_Transform[14])/2.58f)));
-    	//Log.d("WOB", Float.toString(width_of_blur));
+    	float width_of_blur = (float) (pupil_diam/2.0f*Math.abs((float) (1.0f - SCREEN_DISTANCE/last_marker_distance)/2.58f));
+    	Log.e("WOB", Float.toString(width_of_blur));
+    	Log.e("dis", Float.toString(last_marker_distance));
     	
     	Mat gaussian_real = Gaussian_picture(width_of_blur, temp_sharpmat.width(), temp_sharpmat.height());
 

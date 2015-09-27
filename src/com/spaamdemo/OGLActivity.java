@@ -38,7 +38,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.SharpViewDemo.R;
+import com.spaamdemo.R;
 import com.qualcomm.QCAR.QCAR;
 /******Qualcomm AR library for Vuforia Useage******/
 /******Android specific Libraries******/

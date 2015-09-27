@@ -16,7 +16,7 @@ import static android.opengl.GLES20.glUniform1f;
 import static android.opengl.GLES20.glUniformMatrix4fv;
 import android.content.Context;
 
-import com.SharpViewDemo.R;
+import com.spaamdemo.R;
 
 public class BlendTextureShaderProgram extends ShaderProgram{
 
