@@ -97,16 +97,7 @@ public class OGLRenderer extends Activity implements Renderer{
 			.1f, -.05f, 0.0f, .1f, .05f, .1f,
 			
 			};
-	/*
-	float[] u_ProjectionLeft = {4.517603766f, -0.187385877f, 0.049614169f, 0.04951504f,
-							0.03085878f, 8.304909585f, 0.132992709f, 0.132726989f,
-							-0.459890387f, 1.581686211f, -0.991896862f, -0.98991505f,
-							0.503220564f, -0.081912651f, -0.071915019f, 0.128028867f};
-	float[] u_ProjectionRight = {4.346900158f, -0.099565239f, -0.110730603f, -0.110509363f,
-							0.114737754f, 8.085934414f, 0.034289488f, 0.034220978f,
-							-0.426256822f, 1.536851238f, -0.995274322f, -0.993285762f,
-							0.246058517f, -0.046813489f, -0.171563852f, 0.028579133f};
-	*/
+	
 	float[] u_ProjectionLeft = {1f, 0f, 0f, 0f,
 			0f, 1, 0f, 0f,
 			0f, 0f, 1f, 0f,
@@ -182,8 +173,7 @@ public class OGLRenderer extends Activity implements Renderer{
 	private MoverioObject Lumus_model;
 	
 	///////////////////////////////////////////////////////////////////
-	//Object used to transmit the GPS data to the Google Glass//
-	
+	//Object used to transmit the pupil diam data to the Google Glass//
 	ConnectedThread mThread = null;
 	BluetoothSocket socket = null;
 	boolean btconnected = false;
@@ -200,9 +190,12 @@ public class OGLRenderer extends Activity implements Renderer{
 	
 	Mat img_orig = null;
 	Mat img_sharp = null;
+	ArrayList<Mat> color_channelsi = new ArrayList<Mat>();
+	ArrayList<Mat> color_channelso = new ArrayList<Mat>();
 	boolean dirty_flag = false;
 	////////////////////////////////////////////////////////////////////
-	//////////////Timer based Sharpening
+	
+	//////////////Timer based Sharpening///////////////////////////////
 	Timer timer = new Timer();
 	class UpdateSharpTask extends TimerTask {
 		
@@ -223,7 +216,6 @@ public class OGLRenderer extends Activity implements Renderer{
 	}
 	final int interval = 1;
 	TimerTask updatesharp = new UpdateSharpTask();	
-	
 	/////////////////////////////////////////////////////////////////////
 	
 	////////Functions for Handling File Access///////
@@ -330,7 +322,6 @@ public class OGLRenderer extends Activity implements Renderer{
 			;
 		}
 	}
-
 	/////////////////////////////////////////////////////////////////////////////
 	
 	////////////////////////////////////////////////////////////////////////////
@@ -465,6 +456,7 @@ public class OGLRenderer extends Activity implements Renderer{
 		}
 	}
 
+	//Gaussian PSF Estimation
     Mat Gaussian_picture(float SIGMA, int IMAGE_WIDTH, int IMAGE_HEIGHT)
     {	
     	int cx = IMAGE_WIDTH/2, cy = IMAGE_HEIGHT/2;
@@ -472,7 +464,7 @@ public class OGLRenderer extends Activity implements Renderer{
 		double SIGMA_variable = 1 / (2*SIGMA*SIGMA);
 		double distance;
 
-		Mat dst_arr = Mat.zeros(IMAGE_HEIGHT, IMAGE_WIDTH, CvType.CV_32F);//img_orig.type());//, CV_64F);
+		Mat dst_arr = Mat.zeros(IMAGE_HEIGHT, IMAGE_WIDTH, CvType.CV_32F);
 
 		for(j = 0; j < IMAGE_HEIGHT; j++){
 			for(i = 0; i < IMAGE_WIDTH; i++){
@@ -545,21 +537,27 @@ public class OGLRenderer extends Activity implements Renderer{
     
     Mat SharpenImage( )
     {
-    	Mat temp_sharpmat = new Mat();
-    	img_orig.assignTo(temp_sharpmat, CvType.CV_32F);// = Mat(img_orig);
-    	
-    	float width_of_blur = (float) (pupil_diam/2.0f*Math.abs((float) (1.0f - SCREEN_DISTANCE/last_marker_distance)/2.58f));
-    	Log.e("WOB", Float.toString(width_of_blur));
-    	Log.e("dis", Float.toString(last_marker_distance));
-    	
-    	Mat gaussian_real = Gaussian_picture(width_of_blur, temp_sharpmat.width(), temp_sharpmat.height());
-
-		//Deconvolution according to PSF
-		Mat deconvolution_result = Wiener_Filter(temp_sharpmat, gaussian_real, 0.05, temp_sharpmat.width(), temp_sharpmat.height());
-
-		deconvolution_result.assignTo(deconvolution_result, CvType.CV_8U);
-    	
-    	return deconvolution_result;
+    	color_channelso.clear();
+		float width_of_blur = (float) (pupil_diam/2.0f*Math.abs((float) (1.0f - SCREEN_DISTANCE/last_marker_distance)/2.58f));
+		Mat gaussian_real = Gaussian_picture(width_of_blur, img_orig.width(), img_orig.height());
+		for ( int i = 0; i < color_channelsi.size(); i++ )
+		{
+	    	//Mat temp_sharpmat = new Mat();
+	    	//img_orig.assignTo(temp_sharpmat, CvType.CV_32F);
+	    	//color_channelsi.get(i).assignTo(temp_sharpmat, CvType.CV_32F);
+	    	    	
+	    	//Log.e("WOB", Float.toString(width_of_blur));
+	    	//Log.e("dis", Float.toString(last_marker_distance));
+	    	
+			//Deconvolution according to PSF
+			Mat deconvolution_result = Wiener_Filter(color_channelsi.get(i), gaussian_real, 0.05, img_orig.width(), img_orig.height()); 
+			//temp_sharpmat, gaussian_real, 0.05, temp_sharpmat.width(), temp_sharpmat.height());
+	
+			deconvolution_result.assignTo(deconvolution_result, CvType.CV_8U);
+			color_channelso.add(deconvolution_result);
+		}
+		Mat return_image = new Mat(); Core.merge( color_channelso, return_image );
+    	return return_image;//deconvolution_result;
     }
 
 	///////////////////////////////////////////////////////////////////////////
@@ -572,7 +570,7 @@ public class OGLRenderer extends Activity implements Renderer{
 		squareVertexData.put(squareVertices);
 		
 		//Setup the Vuforia Tracker//
-		initTracking(960, 492);
+		initTracking(960, 540);
 	}
 	
 	@Override
@@ -623,13 +621,22 @@ public class OGLRenderer extends Activity implements Renderer{
 		EvaluationBoardV_model = new GenericObject();
 		EvaluationBoardH_model = new GenericObject();
 		//EvaluationBoard_texture = TextureHelper.loadTexture(this.context, R.drawable.sharpview_image);//evaluation_texture);
-		
-		//img_sharp = new Mat();
+
 		img_orig = new Mat();
 		try {
 			img_orig = Utils.loadResource(this.context, R.drawable.sharpview_image);
-			Imgproc.cvtColor(img_orig, img_orig, Imgproc.COLOR_BGRA2GRAY);//COLOR_BGRA2RGBA);
+			//Imgproc.cvtColor(img_orig, img_orig, Imgproc.COLOR_BGRA2GRAY);//COLOR_BGRA2RGBA);
+			Imgproc.cvtColor(img_orig, img_orig, Imgproc.COLOR_BGRA2RGBA);
+			Core.split(img_orig, color_channelsi);
+			for (int i = 0; i < color_channelsi.size(); i++ )
+			{
+				Mat t = new Mat();
+				color_channelsi.get(i).assignTo(t, CvType.CV_32F);
+				color_channelsi.set(i, t);
+			}
+			
 			img_sharp = SharpenImage();
+			
 			SharpView_texture = TextureHelper.loadTexture(img_sharp, SharpView_texture);
 			NormalView_texture = TextureHelper.loadTexture(img_orig, NormalView_texture);
 			
@@ -952,15 +959,15 @@ public class OGLRenderer extends Activity implements Renderer{
 		{
 			SharpView_texture = TextureHelper.loadTexture(img_sharp, SharpView_texture);
 			dirty_flag = false;
-			Log.d("dirty", "dirty!");
 		}
 		
 		
 		//Reset the Display Buffers//
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
+		//Normal View Indicator
 		EvaluationBoardH_model.T_reset();
-		EvaluationBoardH_model.T_translate(-0.1670897f, 0.02499922f, -0.33620003f);
+		EvaluationBoardH_model.T_translate(-0.1370897f, 0.02499922f, -0.33620003f);
 		EvaluationBoardH_model.T_scale(.05f, .1f, 1.0f);
 		float[] temp = new float[16];
 		/////////////////////////////////////////////////////////////////////////
@@ -972,12 +979,10 @@ public class OGLRenderer extends Activity implements Renderer{
 			EvaluationBoardV_model.T_scale(.25f, .5f, 1.0f);
 			
 			//Calculate Angle to Center//
+			/*
 			float CPD = Math.abs(u_Transform[14]);
 			float dist = (float) Math.sqrt(u_Transform[12]*u_Transform[12] + u_Transform[13]*u_Transform[13]);
 			float angle = (float) Math.abs(25.0 - (float) (Math.atan(dist/CPD)*180.0/Math.PI));
-			//Log.d("X", Float.toString(u_Transform[12]));
-			//Log.d("Y", Float.toString(u_Transform[13]));
-			//Log.d("Z", Float.toString(u_Transform[14]));
 			
 			////////Apply SharpView////////
 			if ( angle > 5.0 )
@@ -989,6 +994,7 @@ public class OGLRenderer extends Activity implements Renderer{
 			{
 
 			}
+			*/
 			////////////////////////////////////////////		
 			///////////////////////////////////////////////////////////////////////////
 			///////////////////////////////////////////////////////////////////////////
@@ -1061,6 +1067,5 @@ public class OGLRenderer extends Activity implements Renderer{
 	public void handleTouchDrag(){
 		
 	}
-
 
 }
