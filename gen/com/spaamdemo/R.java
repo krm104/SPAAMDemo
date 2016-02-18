@@ -1104,15 +1104,16 @@ containing a value of this type.
         public static final int eyes_intermediate_1=0x7f02005e;
         public static final int eyes_intermediate_2=0x7f02005f;
         public static final int ic_launcher=0x7f020060;
-        public static final int normalview_image=0x7f020061;
-        public static final int screen_calib_1=0x7f020062;
-        public static final int screen_calib_2=0x7f020063;
-        public static final int screen_calib_3=0x7f020064;
-        public static final int screen_calib_4=0x7f020065;
-        public static final int screen_calib_5=0x7f020066;
-        public static final int screen_calib_intro=0x7f020067;
-        public static final int sharpview_image=0x7f020068;
-        public static final int sharpview_image_copy=0x7f020069;
+        public static final int lena_right=0x7f020061;
+        public static final int normalview_image=0x7f020062;
+        public static final int screen_calib_1=0x7f020063;
+        public static final int screen_calib_2=0x7f020064;
+        public static final int screen_calib_3=0x7f020065;
+        public static final int screen_calib_4=0x7f020066;
+        public static final int screen_calib_5=0x7f020067;
+        public static final int screen_calib_intro=0x7f020068;
+        public static final int sharpview_image=0x7f020069;
+        public static final int sharpview_image_copy=0x7f02006a;
     }
     public static final class id {
         public static final int action_bar=0x7f06001f;

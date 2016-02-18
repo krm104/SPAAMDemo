@@ -153,9 +153,9 @@ Java_com_spaamdemo_OGLActivity_initTracker(JNIEnv *, jobject)
     
     // Initialize the image tracker:
     QCAR::TrackerManager& trackerManager = QCAR::TrackerManager::getInstance();
-    QCAR::MarkerTracker* tracker = static_cast<QCAR::MarkerTracker*> (trackerManager.initTracker(QCAR::MarkerTracker::getClassType()));
-    //QCAR::ImageTracker* tracker = //static_cast<QCAR::MarkerTracker*> (trackerManager.initTracker(QCAR::MarkerTracker::getClassType()));
-    //static_cast<QCAR::ImageTracker*> (trackerManager.initTracker(QCAR::ImageTracker::getClassType()));
+    //QCAR::MarkerTracker* tracker = static_cast<QCAR::MarkerTracker*> (trackerManager.initTracker(QCAR::MarkerTracker::getClassType()));
+    QCAR::ImageTracker* tracker = //static_cast<QCAR::MarkerTracker*> (trackerManager.initTracker(QCAR::MarkerTracker::getClassType()));
+    static_cast<QCAR::ImageTracker*> (trackerManager.initTracker(QCAR::ImageTracker::getClassType()));
     if (tracker == NULL)
     {
         LOG("Failed to initialize MarkerTracker.");
@@ -185,12 +185,12 @@ Java_com_spaamdemo_OGLActivity_loadTrackerData(JNIEnv *, jobject)
     
     // Get the image tracker:
     QCAR::TrackerManager& trackerManager = QCAR::TrackerManager::getInstance();
-    QCAR::MarkerTracker* markerTracker = static_cast<QCAR::MarkerTracker*>(
-    		trackerManager.getTracker(QCAR::MarkerTracker::getClassType()));
-	//QCAR::ImageTracker* imageTracker = static_cast<QCAR::ImageTracker*>(
-	//					trackerManager.getTracker(QCAR::ImageTracker::getClassType()));
+    //QCAR::MarkerTracker* markerTracker = static_cast<QCAR::MarkerTracker*>(
+    //		trackerManager.getTracker(QCAR::MarkerTracker::getClassType()));
+	QCAR::ImageTracker* imageTracker = static_cast<QCAR::ImageTracker*>(
+						trackerManager.getTracker(QCAR::ImageTracker::getClassType()));
 
-    /*
+
     // Create the data sets:
     dataSetStonesAndChips = imageTracker->createDataSet();
     if (dataSetStonesAndChips == 0)
@@ -212,21 +212,22 @@ Java_com_spaamdemo_OGLActivity_loadTrackerData(JNIEnv *, jobject)
         LOG("Failed to activate data set.");
         return 0;
     }
-	*/
 
-    if (markerTracker == NULL)
+
+    if (imageTracker == NULL)
     {
         LOG("Failed to load tracking data set because the MarkerTracker has not"
             " been initialized.");
         return 0;
     }
 
+	/*
     if ( !markerTracker->createFrameMarker(0, "MarkerQ", QCAR::Vec2F(5,5)) )
     {
             LOG("Failed to create frame markers.");
             return 0;
     }
-
+	 */
 
     LOG("Successfully loaded and activated data set.");
     return 1;
@@ -240,11 +241,11 @@ Java_com_spaamdemo_OGLActivity_destroyTrackerData(JNIEnv *, jobject)
 
     // Get the image tracker:
     QCAR::TrackerManager& trackerManager = QCAR::TrackerManager::getInstance();
-    QCAR::MarkerTracker* markerTracker = static_cast<QCAR::MarkerTracker*>(
-        		trackerManager.getTracker(QCAR::MarkerTracker::getClassType()));
-    //QCAR::ImageTracker* imageTracker = static_cast<QCAR::ImageTracker*>(
-    //   trackerManager.getTracker(QCAR::ImageTracker::getClassType()));
-    /*
+    //QCAR::MarkerTracker* markerTracker = static_cast<QCAR::MarkerTracker*>(
+    //    		trackerManager.getTracker(QCAR::MarkerTracker::getClassType()));
+    QCAR::ImageTracker* imageTracker = static_cast<QCAR::ImageTracker*>(
+    	trackerManager.getTracker(QCAR::ImageTracker::getClassType()));
+
     if (dataSetStonesAndChips != 0)
         {
             if (imageTracker->getActiveDataSet() == dataSetStonesAndChips &&
@@ -264,21 +265,22 @@ Java_com_spaamdemo_OGLActivity_destroyTrackerData(JNIEnv *, jobject)
             LOG("Successfully destroyed the data set StonesAndChips.");
             dataSetStonesAndChips = 0;
         }
-	*/
 
-    if (markerTracker == NULL)
+
+    if (imageTracker == NULL)
     {
         LOG("Failed to destroy the tracking data set because the MarkerTracker has not"
             " been initialized.");
         return 0;
     }
     
+    /*
     if ( !markerTracker->destroyMarker(markerTracker->getMarker(0)) )
     {
     	LOG("Failed to destroy the MarkerTracker 0 ");
     	return 0;
     }
-
+	*/
 
     return 1;
 }
@@ -548,11 +550,11 @@ Java_com_spaamdemo_OGLActivity_startCamera(JNIEnv *,
 
     // Start the tracker:
     QCAR::TrackerManager& trackerManager = QCAR::TrackerManager::getInstance();
-    QCAR::MarkerTracker* markerTracker = static_cast<QCAR::MarkerTracker*>(trackerManager.getTracker(QCAR::MarkerTracker::getClassType()));
-    //QCAR::ImageTracker* imageTracker = static_cast<QCAR::ImageTracker*>(trackerManager.getTracker(QCAR::ImageTracker::getClassType()));
+    //QCAR::MarkerTracker* markerTracker = static_cast<QCAR::MarkerTracker*>(trackerManager.getTracker(QCAR::MarkerTracker::getClassType()));
+    QCAR::ImageTracker* imageTracker = static_cast<QCAR::ImageTracker*>(trackerManager.getTracker(QCAR::ImageTracker::getClassType()));
 
-    if(markerTracker != 0)
-        markerTracker->start();
+    if(imageTracker != 0)
+        imageTracker->start();
 }
 
 
@@ -563,10 +565,10 @@ Java_com_spaamdemo_OGLActivity_stopCamera(JNIEnv *, jobject)
 
     // Stop the tracker:
     QCAR::TrackerManager& trackerManager = QCAR::TrackerManager::getInstance();
-    QCAR::MarkerTracker* markerTracker = static_cast<QCAR::MarkerTracker*>(trackerManager.getTracker(QCAR::MarkerTracker::getClassType()));
-    //QCAR::ImageTracker* imageTracker = static_cast<QCAR::ImageTracker*>(trackerManager.getTracker(QCAR::ImageTracker::getClassType()));
-    if(markerTracker != 0)
-        markerTracker->stop();
+    //QCAR::MarkerTracker* markerTracker = static_cast<QCAR::MarkerTracker*>(trackerManager.getTracker(QCAR::MarkerTracker::getClassType()));
+    QCAR::ImageTracker* imageTracker = static_cast<QCAR::ImageTracker*>(trackerManager.getTracker(QCAR::ImageTracker::getClassType()));
+    if(imageTracker != 0)
+        imageTracker->stop();
     
     QCAR::CameraDevice::getInstance().stop();
     QCAR::CameraDevice::getInstance().deinit();

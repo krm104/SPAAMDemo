@@ -8,8 +8,6 @@ import java.util.UUID;
 
 import jp.epson.moverio.bt200.DisplayControl;
 
-import org.opencv.android.OpenCVLoader;
-
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.bluetooth.BluetoothAdapter;
@@ -177,12 +175,7 @@ public class OGLActivity extends Activity {
 		loadLibrary(NATIVE_LIB_SAMPLE);
 	}
 	
-	static {
-	    if (!OpenCVLoader.initDebug()) {
-	        // Handle initialization error
-	    }
-	}
-	
+		
 	/** An async task to initialize QCAR asynchronously. */
 	private class InitQCARTask extends AsyncTask<Void, Integer, Boolean>
 	{
@@ -595,10 +588,6 @@ public class OGLActivity extends Activity {
 	OGLRenderer oglRenderer = null;
 	
 	///////////////////////DATA MEMBERS////////////////////////////
-	BluetoothAdapter mBluetoothAdapter;	
-	Set<BluetoothDevice> pairedDevices;
-	AcceptThread serverThread = null;
-	boolean connected;
 	
 	///////////////////////////////////////////////////////////////
 	
@@ -610,68 +599,6 @@ public class OGLActivity extends Activity {
 	
 	///////////////////////////////////////////////////////////////
 	//////////////////////////Classes//////////////////////////////
-	private class AcceptThread extends Thread {
-		//////////////////////////////////////////////////////////////
-		////////////////////Data Members//////////////////////////////
-		private final BluetoothServerSocket mmServerSocket;
-		String NAME;
-		UUID MY_UUID;
-		Context context;
-		//////////////////////////////////////////////////////////////
-
-		public AcceptThread( String name, UUID uuid, Context cc ) {
-			NAME = name;
-			MY_UUID = uuid;
-			context = cc;
-			// Use a temporary object that is later assigned to mmServerSocket,
-			// because mmServerSocket is final
-			BluetoothServerSocket tmp = null;
-			try {
-				// MY_UUID is the app's UUID string, also used by the client code
-				tmp = mBluetoothAdapter.listenUsingRfcommWithServiceRecord(NAME, MY_UUID);
-			} catch (IOException e) { }
-			mmServerSocket = tmp;
-		}
-
-		public void run() {
-			BluetoothSocket socket = null;
-			// Keep listening until exception occurs or a socket is returned
-			while (true) {
-				try {
-					//Toast.makeText(context, "Attempting to Connect", Toast.LENGTH_LONG).show();
-					socket = mmServerSocket.accept();
-
-				} catch (IOException e) {
-					break;
-				}
-				// If a connection was accepted
-				if (socket != null) {
-					oglRenderer.socket = socket;
-					oglRenderer.ConnectFunc();
-					connected = true;
-
-					try {
-						mmServerSocket.close();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					break;
-				}
-			}
-		}
-
-		/** Will cancel the listening socket, and cause the thread to finish */
-		public void cancel() {
-			try {
-				mmServerSocket.close();
-			} catch (IOException e) { }
-		}
-	}
-
-	/////////////////////////////////////////////////////////////////
-	
-	static boolean firstTimeGetImage=true;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -754,35 +681,6 @@ public class OGLActivity extends Activity {
 			updateApplicationStatus(APPSTATUS_CAMERA_RUNNING);
 		}
 		
-		firstTimeGetImage=true;
-		/////////////BT//////////////////////
-		/////////////////////////////////////
-	    //////////////Make Sure Bluetooth is Active//////////////////////
-		mBluetoothAdapter= BluetoothAdapter.getDefaultAdapter();
-		if (mBluetoothAdapter == null) {
-			Toast.makeText(getBaseContext(), "Bluetooth Adapter Not Found", Toast.LENGTH_SHORT).show();
-		}
-		else{
-			if (!mBluetoothAdapter.isEnabled()) {
-				int REQUEST_ENABLE_BT = 1;
-			    Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-			    startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-			}
-		}
-		
-		pairedDevices = mBluetoothAdapter.getBondedDevices();
-		// If there are paired devices
-		if (pairedDevices.size() > 0) {
-		    // Loop through paired devices
-		    for (BluetoothDevice device : pairedDevices) {
-		        // Add the name and address to an array adapter to show in a ListView
-		    	Toast.makeText(getBaseContext(), device.getName() + device.getAddress(), Toast.LENGTH_SHORT).show();
-		    }
-		    
-		    serverThread = new AcceptThread("SPAAM", UUID.fromString("F8609B20-E179-11E3-8B68-0800200C9A66"), getBaseContext());
-		    serverThread.start();
-		}
-	
 		/////////////////////////////////////
 		///////////////OGL//////////////////
 		///////////////////////////////////
@@ -811,9 +709,6 @@ public class OGLActivity extends Activity {
 		
 		// QCAR-specific pause operation
 		QCAR.onPause();
-		
-		firstTimeGetImage=true;
-		///////////////////////////////
 		
 		/////////////////////////////////
 		////////////OGL//////////////////

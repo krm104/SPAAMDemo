@@ -31,15 +31,7 @@ import java.util.TimerTask;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-import org.opencv.android.Utils;
-import org.opencv.core.Core;
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
-import org.opencv.core.Scalar;
-import org.opencv.imgproc.Imgproc;
-
 import android.app.Activity;
-import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.opengl.GLSurfaceView.Renderer;
 import android.os.AsyncTask;
@@ -173,50 +165,13 @@ public class OGLRenderer extends Activity implements Renderer{
 	private MoverioObject Lumus_model;
 	
 	///////////////////////////////////////////////////////////////////
-	//Object used to transmit the pupil diam data to the Google Glass//
-	ConnectedThread mThread = null;
-	BluetoothSocket socket = null;
-	boolean btconnected = false;
-	///////////////////////////////////////////////////////////////////
 	
 	///////////////////////////////////////////////////////////////////
 	////////Reading in Calibration Related Items///////////////////////
 	File LeftCalibFile = null;
 	File RightCalibFile = null;
-	boolean sharpImage = true;
-	float pupil_diam = 4.0f;
-	final float SCREEN_DISTANCE = 7.0f;
-	float last_marker_distance = .5f;
 	
-	Mat img_orig = null;
-	Mat img_sharp = null;
-	ArrayList<Mat> color_channelsi = new ArrayList<Mat>();
-	ArrayList<Mat> color_channelso = new ArrayList<Mat>();
-	boolean dirty_flag = false;
 	////////////////////////////////////////////////////////////////////
-	
-	//////////////Timer based Sharpening///////////////////////////////
-	Timer timer = new Timer();
-	class UpdateSharpTask extends TimerTask {
-		
-	   public void run() {
-	       //update the sharpened image;
-		   new AsyncTask<Void, Void, String>()  {
-		        @Override
-		        protected String doInBackground(Void... params) {
-		        	img_sharp = SharpenImage();
-		        	return null;
-		        }
-		        @Override
-		        protected void onPostExecute(String msg) {
-		        	dirty_flag = true;
-		        }
-		    }.execute(null, null, null);
-	   }
-	}
-	final int interval = 1;
-	TimerTask updatesharp = new UpdateSharpTask();	
-	/////////////////////////////////////////////////////////////////////
 	
 	////////Functions for Handling File Access///////
 	//// Checks if external storage is available for read and write ////
@@ -332,234 +287,6 @@ public class OGLRenderer extends Activity implements Renderer{
     public native void updateTracking();
     ////////////////////////////////////////////////////////////////////////////
 	
-    private class ConnectedThread extends Thread {
-    	private final BluetoothSocket mmSocket;
-    	private final InputStream mmInStream;
-    	private final OutputStream mmOutStream;
-
-    	public ConnectedThread(BluetoothSocket socket) {
-    		mmSocket = socket;
-    		InputStream tmpIn = null;
-    		OutputStream tmpOut = null;
-
-    		// Get the input and output streams, using temp objects because
-    		// member streams are final
-    		try {
-    			tmpIn = socket.getInputStream();
-    			tmpOut = socket.getOutputStream();
-    		} catch (IOException e) { }
-
-    		mmInStream = tmpIn;
-    		mmOutStream = tmpOut;
-    	}
-
-    	public void run() {
-
-    		/////////////////////
-    		byte[] buffer = new byte[1*32];  // buffer store for the stream
-    		int bytes; // bytes returned from read()
-
-    		// Keep listening to the InputStream until an exception occurs
-    		while (true) {
-    			try {
-    				// Read from the InputStream
-    				ByteBuffer recvbb = ByteBuffer.allocate(32);
-
-    				bytes = mmInStream.read(buffer);
-
-    				recvbb.order(ByteOrder.LITTLE_ENDIAN);
-    				recvbb.put(buffer);
-    				recvbb.rewind();
-    				// Send the obtained bytes to the UI activity
-    				//mHandler.obtainMessage(MESSAGE_READ, bytes, -1, buffer)
-    				//       .sendToTarget();
-    				pupil_diam = (float)recvbb.getFloat();
-    				//this.runOnUiThread(ToastFunc);
-    			} catch (IOException e) {
-    				break;
-    			}
-    		}
-    	}
-
-    	/* Call this from the main activity to send data to the remote device */
-    	public void write(byte[] bytes) {
-    		try {
-    			mmOutStream.write(bytes);
-    		} catch (IOException e) { }
-    	}
-
-    	/* Call this from the main activity to shutdown the connection */
-    	public void cancel() {
-    		try {
-    			mmSocket.close();
-    		} catch (IOException e) { }
-    	}
-    }
-
-    public void ConnectFunc()
-    {
-    	// Do work to manage the connection (in a separate thread)
-    	if ( !btconnected && socket != null )
-    	{
-    		mThread = new ConnectedThread(socket);
-    		mThread.start();
-    		btconnected = true;
-    	}
-    }
-    /////////////////////////////////////////////////////////////////////////////
-    ////////////////Sharpening Filter Functions//////////////////////////////////
-    //Replacement 4 quadrant
-	Mat ShiftDFT(Mat src_arr, int IMAGE_WIDTH, int IMAGE_HEIGHT)
-	{
-		int cx = IMAGE_WIDTH/2, cy = IMAGE_HEIGHT/2;
-		int i, j;
-		Mat dst_arr = Mat.zeros(IMAGE_HEIGHT, IMAGE_WIDTH, CvType.CV_32F);//img_orig.type());//CvType.CV_32F);
-
-		for( j=0; j < cy; j++ ){
-			for( i=0; i < cx; i++ ){
-				dst_arr.put(j, i, src_arr.get(j + cy, i + cx));	
-				dst_arr.put(j + cy, i, src_arr.get(j, i + cx));
-				dst_arr.put(j, i + cx, src_arr.get(j + cy, i));
-				dst_arr.put(j + cy, i + cx, src_arr.get(j, i));
-			}
-		}
-
-		return dst_arr;
-	}
-
-	//Merging for Fourier Transform
-	Mat Merge(Mat src_arr, Mat src_arr2)
-	{
-		ArrayList<Mat> mv = new ArrayList<Mat>();
-		mv.add(src_arr);
-		mv.add(src_arr2);
-
-		Mat complex = new Mat();
-		Core.merge(mv, complex);
-
-		return complex;
-	}
-
-	//Splitting for Fourier Transform
-	Mat Split(Mat src_arr, int flag)
-	{
-		ArrayList<Mat> complex = new ArrayList<Mat>();
-		Core.split(src_arr, complex);
-
-		if(flag == 0){
-
-			return complex.get(0);
-
-		}else{
-
-			return complex.get(1);
-		}
-	}
-
-	//Gaussian PSF Estimation
-    Mat Gaussian_picture(float SIGMA, int IMAGE_WIDTH, int IMAGE_HEIGHT)
-    {	
-    	int cx = IMAGE_WIDTH/2, cy = IMAGE_HEIGHT/2;
-		int i, j;
-		double SIGMA_variable = 1 / (2*SIGMA*SIGMA);
-		double distance;
-
-		Mat dst_arr = Mat.zeros(IMAGE_HEIGHT, IMAGE_WIDTH, CvType.CV_32F);
-
-		for(j = 0; j < IMAGE_HEIGHT; j++){
-			for(i = 0; i < IMAGE_WIDTH; i++){
-				distance = (cx - i) * (cx - i) + (cy - j) * (cy - j);
-				float dstv = (float) ((SIGMA_variable / Math.PI) * Math.exp(-distance * SIGMA_variable));
-				double[] dstva = {dstv};//, dstv, dstv, 0.0f}; 
-				dst_arr.put(j, i, dstva);		
-			}
-		}
-
-		return dst_arr;
-    }
-    
-    //Wiener Filter
-	Mat Wiener_Filter(Mat src_arr, Mat src_arr2, double SN_inverse, int IMAGE_WIDTH, int IMAGE_HEIGHT)
-	{
-		Mat defocusing_dft = new Mat(); Mat gaussian_dft = new Mat();
-		Mat mix_real = new Mat(); Mat mix_imaginary = new Mat();
-		Mat mix_real2 = new Mat(); Mat mix_imaginary2 = new Mat();
-
-		//Initialize
-		Mat defocusing_imaginary = Mat.zeros(IMAGE_HEIGHT, IMAGE_WIDTH, CvType.CV_32F);
-
-		//Generating 2-channel array for the real and imaginary parts
-		Mat defocusing_complex = Merge(src_arr, defocusing_imaginary);
-		Mat gaussian_complex = Merge(src_arr2, defocusing_imaginary);
-
-
-		//Fourier Transform
-		Core.dft(defocusing_complex, defocusing_dft);
-		Core.dft(gaussian_complex, gaussian_dft);
-
-		
-		//Dividing the Fourier transform to the real and imaginary parts
-		Mat defocusimg_dft_real = Split(defocusing_dft, 0);
-		Mat defocusimg_dft_imaginary = Split(defocusing_dft, 1);
-
-		Mat gaussian_dft_real = Split(gaussian_dft, 0);
-		Mat gaussian_dft_imaginary = Split(gaussian_dft, 1);
-
-
-		//Gaussian power
-		double[] t = {0.050}; 
-		Scalar sn = new Scalar(t);
-		Mat gaussian_spectrum = new Mat(); Core.add( gaussian_dft_real.mul(gaussian_dft_real), gaussian_dft_imaginary.mul(gaussian_dft_imaginary), gaussian_spectrum);
-		Mat gaussian_sqrt = new Mat(); Core.add( gaussian_spectrum, sn, gaussian_sqrt);
-
-		//Wiener filter
-		Core.add( defocusimg_dft_real.mul(gaussian_dft_real), defocusimg_dft_imaginary.mul(gaussian_dft_imaginary), mix_real2);
-		Core.subtract( defocusimg_dft_imaginary.mul(gaussian_dft_real), defocusimg_dft_real.mul(gaussian_dft_imaginary), mix_imaginary2);
-
-		Core.divide( mix_real2, gaussian_sqrt, mix_real);
-		Core.divide(mix_imaginary2, gaussian_sqrt, mix_imaginary);	
-
-		//Merging of real and imaginary
-		Mat Gaussian_deconvolution = Merge(mix_real, mix_imaginary);
-
-		//Inverse Fourier Transform
-		Mat defocusimg_idft = new Mat();
-		Core.idft(Gaussian_deconvolution, defocusimg_idft, Core.DFT_SCALE, Gaussian_deconvolution.rows());
-
-		//Picking up the real part
-		Mat idft_result = Split(defocusimg_idft, 0);
-
-		//Replacement 4 quadrant
-		Mat idft_result_shift = ShiftDFT(idft_result, IMAGE_WIDTH, IMAGE_HEIGHT);
-
-		return idft_result_shift;
-	}
-    
-    Mat SharpenImage( )
-    {
-    	color_channelso.clear();
-		float width_of_blur = (float) (pupil_diam/2.0f*Math.abs((float) (1.0f - SCREEN_DISTANCE/last_marker_distance)/2.58f));
-		Mat gaussian_real = Gaussian_picture(width_of_blur, img_orig.width(), img_orig.height());
-		for ( int i = 0; i < color_channelsi.size(); i++ )
-		{
-	    	//Mat temp_sharpmat = new Mat();
-	    	//img_orig.assignTo(temp_sharpmat, CvType.CV_32F);
-	    	//color_channelsi.get(i).assignTo(temp_sharpmat, CvType.CV_32F);
-	    	    	
-	    	//Log.e("WOB", Float.toString(width_of_blur));
-	    	//Log.e("dis", Float.toString(last_marker_distance));
-	    	
-			//Deconvolution according to PSF
-			Mat deconvolution_result = Wiener_Filter(color_channelsi.get(i), gaussian_real, 0.05, img_orig.width(), img_orig.height()); 
-			//temp_sharpmat, gaussian_real, 0.05, temp_sharpmat.width(), temp_sharpmat.height());
-	
-			deconvolution_result.assignTo(deconvolution_result, CvType.CV_8U);
-			color_channelso.add(deconvolution_result);
-		}
-		Mat return_image = new Mat(); Core.merge( color_channelso, return_image );
-    	return return_image;//deconvolution_result;
-    }
-
 	///////////////////////////////////////////////////////////////////////////
     public OGLRenderer( Context context )
 	{
@@ -621,32 +348,7 @@ public class OGLRenderer extends Activity implements Renderer{
 		EvaluationBoardV_model = new GenericObject();
 		EvaluationBoardH_model = new GenericObject();
 		//EvaluationBoard_texture = TextureHelper.loadTexture(this.context, R.drawable.sharpview_image);//evaluation_texture);
-
-		img_orig = new Mat();
-		try {
-			img_orig = Utils.loadResource(this.context, R.drawable.sharpview_image);
-			//Imgproc.cvtColor(img_orig, img_orig, Imgproc.COLOR_BGRA2GRAY);//COLOR_BGRA2RGBA);
-			Imgproc.cvtColor(img_orig, img_orig, Imgproc.COLOR_BGRA2RGBA);
-			Core.split(img_orig, color_channelsi);
-			for (int i = 0; i < color_channelsi.size(); i++ )
-			{
-				Mat t = new Mat();
-				color_channelsi.get(i).assignTo(t, CvType.CV_32F);
-				color_channelsi.set(i, t);
-			}
-			
-			img_sharp = SharpenImage();
-			
-			SharpView_texture = TextureHelper.loadTexture(img_sharp, SharpView_texture);
-			NormalView_texture = TextureHelper.loadTexture(img_orig, NormalView_texture);
-			
-			NormalMode_texture = TextureHelper.loadTexture(this.context, R.drawable.normalview_image);
-			timer.scheduleAtFixedRate(updatesharp, 1000, interval*500);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
+	
 		ScreenCalibration_model = new GenericObject();
 		ScreenCalibration_texture1 = TextureHelper.loadTexture(this.context, R.drawable.screen_calib_intro);
 		ScreenCalibration_texture2 = TextureHelper.loadTexture(this.context, R.drawable.screen_calib_1);
@@ -677,8 +379,6 @@ public class OGLRenderer extends Activity implements Renderer{
 		u_Transform[4] = transform4; u_Transform[5] = -transform5; u_Transform[6] = -transform6; u_Transform[7] = transform7;
 		u_Transform[8] = transform8; u_Transform[9] = -transform9; u_Transform[10] = -transform10; u_Transform[11] = transform11;
 		u_Transform[12] = transform12/100.0f; u_Transform[13] = -transform13/100.0f; u_Transform[14] = -transform14/100.0f; u_Transform[15] = transform15;
-		
-		last_marker_distance = Math.abs(u_Transform[14]);
 	}
 
 	public void setTrackedNative(boolean istracked) {
@@ -703,6 +403,7 @@ public class OGLRenderer extends Activity implements Renderer{
 
 	/**********************************************************
 	 	Poster OnDrawFrame Function!!
+	**********************************************************/
 	 	@Override
 	public void onDrawFrame(GL10 gl) {
 		updateTracking();        
@@ -943,110 +644,10 @@ public class OGLRenderer extends Activity implements Renderer{
 			///////////////////////////////////////////////////////////////////////////
 		}else
 		{
-			glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		}
 	}
-	************************************************************/
 	
-	/********************************************************
-	 SharpView OnDrawFrame Function!!
-	*******************************************************/
-	@Override
-	public void onDrawFrame(GL10 gl) {
-		updateTracking();        
-		
-		if ( dirty_flag )
-		{
-			SharpView_texture = TextureHelper.loadTexture(img_sharp, SharpView_texture);
-			dirty_flag = false;
-		}
-		
-		
-		//Reset the Display Buffers//
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		
-		//Normal View Indicator
-		EvaluationBoardH_model.T_reset();
-		EvaluationBoardH_model.T_translate(-0.1370897f, 0.02499922f, -0.33620003f);
-		EvaluationBoardH_model.T_scale(.05f, .1f, 1.0f);
-		float[] temp = new float[16];
-		/////////////////////////////////////////////////////////////////////////
-		if ( tracking ){
-			//Move Models//
-			//Evaluation Board Models//
-			EvaluationBoardV_model.T_reset();
-			EvaluationBoardV_model.T_translate(0.0f, 0.0f, 0.0f);
-			EvaluationBoardV_model.T_scale(.25f, .5f, 1.0f);
-			
-			//Calculate Angle to Center//
-			/*
-			float CPD = Math.abs(u_Transform[14]);
-			float dist = (float) Math.sqrt(u_Transform[12]*u_Transform[12] + u_Transform[13]*u_Transform[13]);
-			float angle = (float) Math.abs(25.0 - (float) (Math.atan(dist/CPD)*180.0/Math.PI));
-			
-			////////Apply SharpView////////
-			if ( angle > 5.0 )
-			{
-
-			}
-			//////Normal View////////
-			else if (angle < 3.0 )
-			{
-
-			}
-			*/
-			////////////////////////////////////////////		
-			///////////////////////////////////////////////////////////////////////////
-			///////////////////////////////////////////////////////////////////////////
-
-			//Draw Models//
-			//Evaluation Models//
-			//Draw Right Eye//
-			glViewport(WIDTH/2, 0, WIDTH/2, HEIGHT);
-			
-			textureProgram.useProgram();
-			multiplyMM(temp, 0, u_Transform, 0, EvaluationBoardV_model.T_get(), 0);
-			if ( sharpImage )
-			{
-				textureProgram.setUniforms(u_ProjectionRight, temp, SharpView_texture);
-			}
-			else
-			{
-				textureProgram.setUniforms(u_ProjectionRight, temp, NormalView_texture);
-			}
-			EvaluationBoardV_model.bindData(textureProgram);
-			EvaluationBoardV_model.draw();
-			
-			
-			/*
-			//Draw Left Eye//
-			glViewport(0, 0, WIDTH/2, HEIGHT);
-			
-			textureProgram.useProgram();
-			multiplyMM(temp, 0, u_Transform, 0, EvaluationBoardV_model.T_get(), 0);
-			if ( sharpImage )
-			{
-				textureProgram.setUniforms(u_ProjectionLeft, temp, SharpView_texture);
-			}
-			else
-			{
-				textureProgram.setUniforms(u_ProjectionLeft, temp, NormalView_texture);
-			}
-			EvaluationBoardV_model.bindData(textureProgram);
-			EvaluationBoardV_model.draw();
-			*/
-		}
-		if ( !sharpImage )
-		{
-			multiplyMM(temp, 0, u_Transform_N, 0, EvaluationBoardH_model.T_get(), 0);
-			textureProgram.setUniforms(u_ProjectionRight, temp, NormalMode_texture);
-			EvaluationBoardH_model.bindData(textureProgram);
-			EvaluationBoardH_model.draw();
-
-		}
-		///////////////////////////////////////////////////////////////////////////
-	}
-
 	/**************************************************************************
 	 * @throws IOException
 	 * 
@@ -1057,7 +658,7 @@ public class OGLRenderer extends Activity implements Renderer{
 	 * to solve for the SPAAM solution.
 	 **************************************************************************/
 	public void handleTouchPress() throws IOException{
-		sharpImage = !sharpImage;
+	
 	}
 	
 	/***************************************************************************
